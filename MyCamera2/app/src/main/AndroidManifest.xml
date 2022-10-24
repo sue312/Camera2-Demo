@@ -17,6 +17,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:requestLegacyExternalStorage="true"
+        android:configChanges="orientation|screenSize"
         android:theme="@style/Theme.AppCompat.NoActionBar" >
         <activity
             android:name=".MainActivity"
