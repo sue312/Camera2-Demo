@@ -20,15 +20,6 @@ public class CameraOrientationListener extends OrientationEventListener {
             mCurrentNormalizedOrientation = normalize(orientation);
             Log.d("wangxin666","mCurrentNormalizedOrientation = " + mCurrentNormalizedOrientation);
         }
-
-//        runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//                //String str = "当前屏幕手持角度:" + orientation + "°\n当前屏幕手持方向:" + mCurrentNormalizedOrientation;
-//                //txt.setText(str);
-//                setmCurrentNormalizedOrientation(mCurrentNormalizedOrientation);
-//            }
-//        });
     }
 
     private int normalize(int degrees) {
@@ -47,11 +38,4 @@ public class CameraOrientationListener extends OrientationEventListener {
         throw new RuntimeException("The physics as we know them are no more. Watch out for anomalies.");
     }
 
-    public int getmCurrentNormalizedOrientation() {
-        return mCurrentNormalizedOrientation;
-    }
-
-    public void setmCurrentNormalizedOrientation(int mCurrentNormalizedOrientation) {
-        this.mCurrentNormalizedOrientation = mCurrentNormalizedOrientation;
-    }
 }

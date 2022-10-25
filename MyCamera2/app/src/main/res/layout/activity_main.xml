@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <TextureView
         android:id="@+id/texture"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_weight="1"/>
+        android:layout_height="match_parent" />
 
     <LinearLayout
+        android:layout_alignParentBottom="true"
         android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:background="@color/white666">
         <Button
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -22,10 +22,10 @@
             android:text="取消"
             android:visibility="invisible"/>
         <Button
+            android:id="@+id/captureButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:id="@+id/captureButton"
             android:text="拍照"
             android:visibility="visible"/>
         <Button
@@ -37,4 +37,4 @@
             android:visibility="invisible"/>
     </LinearLayout>
 
-</LinearLayout>
+</RelativeLayout>

@@ -76,7 +76,6 @@ public class MainActivity extends AppCompatActivity {
     private int mOrientation = 0;
 
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
-    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +89,10 @@ public class MainActivity extends AppCompatActivity {
         //预览界面TextureView
         mTextureView = findViewById(R.id.texture);
         tackPictureBtn = findViewById(R.id.captureButton);
+
+        //拍照方向矫正
+        CameraOrientationListener orientationListener = new CameraOrientationListener(this);
+        orientationListener.enable();
     }
 
     @Override
@@ -287,8 +290,14 @@ public class MainActivity extends AppCompatActivity {
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
             //assert(texture != null);
 
+            Log.d("wangxin666","mTextureView.getWidth() = " + mTextureView.getWidth()  + " mTextureView.getHeight()" + mTextureView.getHeight());
             // 我们将默认缓冲区的大小配置为我们想要的相机预览大小。
-            texture.setDefaultBufferSize(mTextureView.getWidth(), mTextureView.getHeight());
+            startOrientationChangeListener();
+            if ( mOrientation == 90 || mOrientation == 270) {
+                texture.setDefaultBufferSize(mTextureView.getWidth(), mTextureView.getHeight());
+            } else {
+                texture.setDefaultBufferSize(mTextureView.getHeight(), mTextureView.getWidth());
+            }
             // 这是我们需要开始预览的输出表面。
             Surface surface = new Surface(texture);
 
@@ -388,14 +397,10 @@ public class MainActivity extends AppCompatActivity {
             captureBuilder.set(CaptureRequest.CONTROL_AE_MODE,
                     CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
             // 方向
-            //int rotation = getWindowManager().getDefaultDisplay().getRotation();
-            //captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-            CameraOrientationListener orientationListener = new CameraOrientationListener(this);
-            orientationListener.enable();
             startOrientationChangeListener();
-            int rotation = mOrientation;
-            Log.d("wangxin666","rotation = " + rotation);
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, rotation);
+
+            Log.d("wangxin666","mOrientation = " + mOrientation);
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, mOrientation);
 
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
@@ -490,4 +495,5 @@ public class MainActivity extends AppCompatActivity {
         };
         mOrEventListener.enable();
     }
+
 }
