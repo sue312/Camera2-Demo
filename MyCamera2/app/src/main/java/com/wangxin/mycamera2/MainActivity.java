@@ -1,11 +1,7 @@
 package com.wangxin.mycamera2;
 
-import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
-
-import static com.wangxin.mycamera2.Config.EXTERNAL_STORAGE_DIRECTORY_ROOT;
 import static com.wangxin.mycamera2.Config.PERMISSIONS_CAMERA;
 import static com.wangxin.mycamera2.Config.PERMISSIONS_STORAGE;
-import static com.wangxin.mycamera2.Config.REQUEST_CAMERA_PERMISSION;
 import static com.wangxin.mycamera2.Config.REQUEST_PERMISSION_CODE;
 import static com.wangxin.mycamera2.Config.STATE_PREVIEW;
 import static com.wangxin.mycamera2.Config.STATE_WAITING_PRECAPTURE;
@@ -30,16 +26,10 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
-import android.media.Image;
 import android.media.ImageReader;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.util.Log;
-import android.util.SparseIntArray;
-import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -48,34 +38,19 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
-import java.util.Locale;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
-    private int mState = STATE_PREVIEW;
 
     private String mCameraId, path;
     private File mFile, cameraFile;
-
-    private CameraManager mCameraManager;
-    private CameraDevice mCameraDevice;
     private TextureView mTextureView;
     private Button tackPictureBtn;
-    private ImageReader mImageReader;
-    private CaptureRequest.Builder mPreviewBuilder;
-    private CameraCaptureSession mCaptureSession;
-    private CaptureRequest mPreviewRequest;
-    private BackgroundThread backgroundThread;
     private int mOrientation = 0;
-
-    private Semaphore mCameraOpenCloseLock = new Semaphore(1);
+    CameraAttributes cameraAttributes = new CameraAttributes();
+    MethodTool methodTool = new MethodTool();
+    CameraMeans cameraMeans = new CameraMeans();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,23 +59,25 @@ public class MainActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
 
-        //获取Camera服务
-        mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         //预览界面TextureView
         mTextureView = findViewById(R.id.texture);
         tackPictureBtn = findViewById(R.id.captureButton);
 
         //拍照方向矫正
-        CameraOrientationListener orientationListener = new CameraOrientationListener(this);
-        orientationListener.enable();
+        methodTool.setOrientationListener(new CameraOrientationListener(this));
+        methodTool.getOrientationListener().enable();
+
+        //获取Camera服务
+        cameraAttributes.setCameraManager((CameraManager)getSystemService(Context.CAMERA_SERVICE));
+        cameraAttributes.setContext(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         //启动后台线程
-        backgroundThread = new BackgroundThread();
-        backgroundThread.startBackgroundThread();
+        methodTool.setBackgroundThread(new BackgroundThread());
+        methodTool.getBackgroundThread().startBackgroundThread();
 
         //如果mTextureView可用
         if (mTextureView.isAvailable()) {
@@ -124,19 +101,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         closeCamera();
-        backgroundThread.stopBackgroundThread();
+        methodTool.getBackgroundThread().stopBackgroundThread();
     }
 
     //锁定焦点 wx1
     private void lockFocus() {
         try {
             // 相机锁定焦点的方法
-            mPreviewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+            cameraAttributes.getPreviewBuilder().set(CaptureRequest.CONTROL_AF_TRIGGER,
                     CameraMetadata.CONTROL_AF_TRIGGER_START);
             //告诉 #mCaptureCallback 等待锁定。
-            mState = STATE_WAITING_PRECAPTURE;
-            mCaptureSession.capture(mPreviewBuilder.build(), mCaptureCallback,
-                    backgroundThread.mBackgroundHandler);
+            cameraAttributes.setState(STATE_WAITING_PRECAPTURE);
+            cameraAttributes.getCaptureSession().capture(cameraAttributes.getPreviewBuilder().build(), mCaptureCallback,
+                    methodTool.getBackgroundThread().mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -162,18 +139,18 @@ public class MainActivity extends AppCompatActivity {
         getCameraId();
 
         //图像阅读器
-        mImageReader = ImageReader.newInstance(width, height, ImageFormat.JPEG,/*maxImages*/7);
+        cameraAttributes.setImageReader(ImageReader.newInstance(width, height, ImageFormat.JPEG,/*maxImages*/7));
         //注册一个侦听器，以便在 ImageReader 中有新图像可用时调用。
-        mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, backgroundThread.mBackgroundHandler);
+        cameraAttributes.getImageReader().setOnImageAvailableListener(mOnImageAvailableListener, methodTool.getBackgroundThread().mBackgroundHandler);
 
         try {
-            if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
+            if (!cameraAttributes.getCameraOpenCloseLock().tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
-            mCameraManager.openCamera(mCameraId, mStateCallback, backgroundThread.mBackgroundHandler);
+            cameraAttributes.getCameraManager().openCamera(mCameraId, mStateCallback, methodTool.getBackgroundThread().mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -226,9 +203,9 @@ public class MainActivity extends AppCompatActivity {
     private void getCameraId() {
         try {
             //按标识符返回当前连接的相机设备列表，包括可能被其他相机 API 客户端使用的相机
-            for (String cameraId : mCameraManager.getCameraIdList()) {
+            for (String cameraId : cameraAttributes.getCameraManager().getCameraIdList()) {
                 //可获取指定摄像头的相关特性
-                CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(cameraId);
+                CameraCharacteristics characteristics = cameraAttributes.getCameraManager().getCameraCharacteristics(cameraId);
                 if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
                     continue;
                 }
@@ -245,8 +222,8 @@ public class MainActivity extends AppCompatActivity {
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            path  = fileTool.getPhotoFileName();
-            cameraFile = fileTool.createNewFile(path);
+            path  = FileTool.getPhotoFileName();
+            cameraFile = FileTool.createNewFile(path);
             //文件储存
             mFile = new File(cameraFile.toURI());
 
@@ -255,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
             intent.setData(Uri.fromFile(cameraFile));
             sendBroadcast(intent);
 
-            backgroundThread.mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mFile));
+            methodTool.getBackgroundThread().mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mFile));
         }
     };
 
@@ -264,23 +241,23 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onOpened(CameraDevice cameraDevice) {
-            mCameraOpenCloseLock.release();
-            mCameraDevice = cameraDevice;
+            cameraAttributes.getCameraOpenCloseLock().release();
+            cameraAttributes.setCameraDevice(cameraDevice);
             createCameraPreviewSession();
         }
 
         @Override
         public void onDisconnected(CameraDevice cameraDevice) {
-            mCameraOpenCloseLock.release();
+            cameraAttributes.getCameraOpenCloseLock().release();
             cameraDevice.close();
-            mCameraDevice = null;
+            cameraAttributes.setCameraDevice(null);
         }
 
         @Override
         public void onError(CameraDevice cameraDevice, int error) {
-            mCameraOpenCloseLock.release();
+            cameraAttributes.getCameraOpenCloseLock().release();
             cameraDevice.close();
-            mCameraDevice = null;
+            cameraAttributes.setCameraDevice(null);
         }
     };
 
@@ -292,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
 
             Log.d("wangxin666","mTextureView.getWidth() = " + mTextureView.getWidth()  + " mTextureView.getHeight()" + mTextureView.getHeight());
             // 我们将默认缓冲区的大小配置为我们想要的相机预览大小。
-            startOrientationChangeListener();
+            mOrientation = methodTool.getOrientationListener().startOrientationChangeListener(this);
             if ( mOrientation == 90 || mOrientation == 270) {
                 texture.setDefaultBufferSize(mTextureView.getWidth(), mTextureView.getHeight());
             } else {
@@ -302,26 +279,26 @@ public class MainActivity extends AppCompatActivity {
             Surface surface = new Surface(texture);
 
             //创建预览的请求
-            mPreviewBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            mPreviewBuilder.addTarget(surface);//预览时，是将Surface()作为目标
-            mState = STATE_PREVIEW;
-            mCameraDevice.createCaptureSession(
-                    Arrays.asList(surface, mImageReader.getSurface()),
+            cameraAttributes.setPreviewBuilder(cameraAttributes.getCameraDevice().createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW));
+            cameraAttributes.getPreviewBuilder().addTarget(surface);//预览时，是将Surface()作为目标
+            cameraAttributes.setState(STATE_PREVIEW);
+            cameraAttributes.getCameraDevice().createCaptureSession(
+                    Arrays.asList(surface, cameraAttributes.getImageReader().getSurface()),
                     new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                             // 相机已经关闭
-                            if (null == mCameraDevice) {
+                            if (null == cameraAttributes.getCameraDevice()) {
                                 return;
                             }
-                            mCaptureSession = cameraCaptureSession;
+                            cameraAttributes.setCaptureSession(cameraCaptureSession);
                             try {
-                                mPreviewBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+                                cameraAttributes.getPreviewBuilder().set(CaptureRequest.CONTROL_AF_MODE,
                                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-                                mPreviewBuilder.set(CaptureRequest.CONTROL_AE_MODE,
+                                cameraAttributes.getPreviewBuilder().set(CaptureRequest.CONTROL_AE_MODE,
                                         CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
-                                mPreviewRequest = mPreviewBuilder.build();
-                                mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback, backgroundThread.mBackgroundHandler);
+                                cameraAttributes.setPreviewRequest(cameraAttributes.getPreviewBuilder().build());
+                                cameraAttributes.getCaptureSession().setRepeatingRequest(cameraAttributes.getPreviewRequest(), mCaptureCallback, methodTool.getBackgroundThread().mBackgroundHandler);
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                                 Log.e("linc","set preview builder failed."+e.getMessage());
@@ -332,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
                         public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
                             Toast.makeText(MainActivity.this, "Camera configuration Failed", Toast.LENGTH_SHORT).show();
                         }
-                    },backgroundThread.mBackgroundHandler);
+                    }, methodTool.getBackgroundThread().mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -344,19 +321,19 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request,
                                                TotalCaptureResult result) {
-                    mCaptureSession = session;
+                    cameraAttributes.setCaptureSession(session);
                     checkState(result);
                 }
 
                 @Override
                 public void onCaptureProgressed(CameraCaptureSession session, CaptureRequest request,
                                                 CaptureResult partialResult) {
-                    mCaptureSession = session;
+                    cameraAttributes.setCaptureSession(session);
                     checkState(partialResult);
                 }
 
                 private void checkState(CaptureResult result) {
-                    switch (mState) {
+                    switch (cameraAttributes.getState()) {
                         case STATE_PREVIEW:
                             // 当相机预览正常工作时，我们无事可做。
                             break;
@@ -383,13 +360,13 @@ public class MainActivity extends AppCompatActivity {
     //捕捉静态图片  wx8
     private void captureStillPicture() {
         try {
-            if (null == mCameraDevice) {
+            if (null == cameraAttributes.getCameraDevice()) {
                 return;
             }
             // 这是我们用来拍照的 Capture RequestBuilder。
             final CaptureRequest.Builder captureBuilder =
-                    mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            captureBuilder.addTarget(mImageReader.getSurface());//拍照时，是将mImageReader.getSurface()作为目标
+                    cameraAttributes.getCameraDevice().createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.addTarget(cameraAttributes.getImageReader().getSurface());//拍照时，是将mImageReader.getSurface()作为目标
 
             // 使用与预览相同的 AE 和 AF 模式。
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
@@ -397,8 +374,7 @@ public class MainActivity extends AppCompatActivity {
             captureBuilder.set(CaptureRequest.CONTROL_AE_MODE,
                     CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
             // 方向
-            startOrientationChangeListener();
-
+            mOrientation = methodTool.getOrientationListener().startOrientationChangeListener(this);
             Log.d("wangxin666","mOrientation = " + mOrientation);
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, mOrientation);
 
@@ -414,9 +390,9 @@ public class MainActivity extends AppCompatActivity {
                     unlockFocus();//恢复预览
                 }
             };
-            mCaptureSession.stopRepeating();
-            mCaptureSession.abortCaptures();
-            mCaptureSession.capture(captureBuilder.build(), CaptureCallback, null);
+            cameraAttributes.getCaptureSession().stopRepeating();
+            cameraAttributes.getCaptureSession().abortCaptures();
+            cameraAttributes.getCaptureSession().capture(captureBuilder.build(), CaptureCallback, null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -426,12 +402,12 @@ public class MainActivity extends AppCompatActivity {
     private void unlockFocus() {
         try {
             // Reset the auto-focus trigger
-            mPreviewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+            cameraAttributes.getPreviewBuilder().set(CaptureRequest.CONTROL_AF_TRIGGER,
                     CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-            mPreviewBuilder.set(CaptureRequest.CONTROL_AE_MODE,
+            cameraAttributes.getPreviewBuilder().set(CaptureRequest.CONTROL_AE_MODE,
                     CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
-            mState = STATE_PREVIEW;
-            mCaptureSession.setRepeatingRequest(mPreviewBuilder.build(), mCaptureCallback, backgroundThread.mBackgroundHandler);
+            cameraAttributes.setState(STATE_PREVIEW);
+            cameraAttributes.getCaptureSession().setRepeatingRequest(cameraAttributes.getPreviewBuilder().build(), mCaptureCallback, methodTool.getBackgroundThread().mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -447,53 +423,27 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-
     //关闭Camera  wx0
     private void closeCamera() {
         try {
-            mCameraOpenCloseLock.acquire();
-            if (null != mCaptureSession) {
-                mCaptureSession.close();
-                mCaptureSession = null;
+            cameraAttributes.getCameraOpenCloseLock().acquire();
+            if (null != cameraAttributes.getCaptureSession()) {
+                cameraAttributes.getCaptureSession().close();
+                cameraAttributes.setCaptureSession(null);
             }
-            if (null != mCameraDevice) {
-                mCameraDevice.close();
-                mCameraDevice = null;
+            if (null != cameraAttributes.getCameraDevice()) {
+                cameraAttributes.getCameraDevice().close();
+                cameraAttributes.setCameraDevice(null);
             }
-            if (null != mImageReader) {
-                mImageReader.close();
-                mImageReader = null;
+            if (null != cameraAttributes.getImageReader()) {
+                cameraAttributes.getImageReader().close();
+                cameraAttributes.setImageReader(null);
             }
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
         } finally {
-            mCameraOpenCloseLock.release();
+            cameraAttributes.getCameraOpenCloseLock().release();
         }
-    }
-
-    //拍照方向矫正
-    private void startOrientationChangeListener() {
-        OrientationEventListener mOrEventListener = new OrientationEventListener(this) {
-            @Override
-            public void onOrientationChanged(int rotation) {
-                if (((rotation >= 0) && (rotation <= 45)) || (rotation > 315)) {
-                    rotation = 90;
-                } else if ((rotation > 45) && (rotation <= 135)) {
-                    rotation = 180;
-                } else if ((rotation > 135) && (rotation <= 225)) {
-                    rotation = 270;
-                } else if ((rotation > 225) && (rotation <= 315)) {
-                    rotation = 0;
-                } else {
-                    rotation = 0;
-                }
-                if (rotation == mOrientation) {
-                    return;
-                }
-                mOrientation = rotation;
-            }
-        };
-        mOrEventListener.enable();
     }
 
 }
