@@ -1,4 +1,4 @@
-package com.wangxin.mycamera2;
+package com.wangxin.mycamera2.control;
 
 import android.content.Intent;
 import android.media.Image;
@@ -24,7 +24,7 @@ public class ImageSaver implements Runnable {
      */
     private File mFile;
 
-    ImageSaver(Image image, File file) {
+    public ImageSaver(Image image, File file) {
         mImage = image;
         mFile = file;
     }

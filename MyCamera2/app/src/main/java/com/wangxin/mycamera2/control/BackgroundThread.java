@@ -1,4 +1,4 @@
-package com.wangxin.mycamera2;
+package com.wangxin.mycamera2.control;
 
 import android.os.Handler;
 import android.os.HandlerThread;

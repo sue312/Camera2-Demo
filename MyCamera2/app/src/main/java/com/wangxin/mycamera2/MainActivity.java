@@ -1,10 +1,10 @@
 package com.wangxin.mycamera2;
 
-import static com.wangxin.mycamera2.Config.PERMISSIONS_CAMERA;
-import static com.wangxin.mycamera2.Config.PERMISSIONS_STORAGE;
-import static com.wangxin.mycamera2.Config.REQUEST_PERMISSION_CODE;
-import static com.wangxin.mycamera2.Config.STATE_PREVIEW;
-import static com.wangxin.mycamera2.Config.STATE_WAITING_PRECAPTURE;
+import static com.wangxin.mycamera2.model.Config.PERMISSIONS_CAMERA;
+import static com.wangxin.mycamera2.model.Config.PERMISSIONS_STORAGE;
+import static com.wangxin.mycamera2.model.Config.REQUEST_PERMISSION_CODE;
+import static com.wangxin.mycamera2.model.Config.STATE_PREVIEW;
+import static com.wangxin.mycamera2.model.Config.STATE_WAITING_PRECAPTURE;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,8 +34,16 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.Toast;
+
+import com.wangxin.mycamera2.control.BackgroundThread;
+import com.wangxin.mycamera2.control.CameraOrientationListener;
+import com.wangxin.mycamera2.control.CloseCamera;
+import com.wangxin.mycamera2.control.FileTool;
+import com.wangxin.mycamera2.control.ImageSaver;
+import com.wangxin.mycamera2.model.ActivityTool;
+import com.wangxin.mycamera2.model.CameraAttributes;
+import com.wangxin.mycamera2.model.MethodTool;
 
 import java.io.File;
 import java.util.Arrays;
@@ -43,14 +51,9 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
-    private String mCameraId, path;
-    private File mFile, cameraFile;
-    private TextureView mTextureView;
-    private Button tackPictureBtn;
-    private int mOrientation = 0;
-    CameraAttributes cameraAttributes = new CameraAttributes();
     MethodTool methodTool = new MethodTool();
-    CameraMeans cameraMeans = new CameraMeans();
+    ActivityTool activityTool = new ActivityTool();
+    CameraAttributes cameraAttributes = new CameraAttributes();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,8 +63,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //预览界面TextureView
-        mTextureView = findViewById(R.id.texture);
-        tackPictureBtn = findViewById(R.id.captureButton);
+        activityTool.setTextureView(findViewById(R.id.texture));
+        activityTool.setTackPictureBtn(findViewById(R.id.captureButton));
 
         //拍照方向矫正
         methodTool.setOrientationListener(new CameraOrientationListener(this));
@@ -70,26 +73,29 @@ public class MainActivity extends AppCompatActivity {
         //获取Camera服务
         cameraAttributes.setCameraManager((CameraManager)getSystemService(Context.CAMERA_SERVICE));
         cameraAttributes.setContext(this);
+
+        //启动后台线程
+        methodTool.setBackgroundThread(new BackgroundThread());
+        methodTool.getBackgroundThread().startBackgroundThread();
+
+        methodTool.setCloseCamera(new CloseCamera());
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        //启动后台线程
-        methodTool.setBackgroundThread(new BackgroundThread());
-        methodTool.getBackgroundThread().startBackgroundThread();
 
         //如果mTextureView可用
-        if (mTextureView.isAvailable()) {
+        if (activityTool.getTextureView().isAvailable()) {
             //打开相机
-            openCamera(mTextureView.getWidth(), mTextureView.getHeight());
+            openCamera(activityTool.getTextureView().getWidth(), activityTool.getTextureView().getHeight());
         } else {
             //监听mTextureView可用，打开相机
-            mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+            activityTool.getTextureView().setSurfaceTextureListener(mSurfaceTextureListener);
         }
 
         //拍照点击事件
-        tackPictureBtn.setOnClickListener(new View.OnClickListener() {
+        activityTool.getTackPictureBtn().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 lockFocus();
@@ -100,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        closeCamera();
+        methodTool.getCloseCamera().closeCamera();
         methodTool.getBackgroundThread().stopBackgroundThread();
     }
 
@@ -118,6 +124,28 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+    //监听mTextureView可用，打开相机 wx3
+    private final TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
+            openCamera(width, height);
+        }
+
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
+            //configureTransform(width, height);
+        }
+
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
+            return true;
+        }
+
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture texture) {
+        }
+    };
 
     //打开相机 wx3
     private void openCamera(int width, int height) {
@@ -150,54 +178,13 @@ public class MainActivity extends AppCompatActivity {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
-            cameraAttributes.getCameraManager().openCamera(mCameraId, mStateCallback, methodTool.getBackgroundThread().mBackgroundHandler);
+            cameraAttributes.getCameraManager().openCamera(cameraAttributes.getCameraId(), mStateCallback, methodTool.getBackgroundThread().mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
         }
     }
-
-    //动态申请权限 wx4
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        //摄像头
-        if (requestCode == REQUEST_PERMISSION_CODE) {
-            //用户允许改权限，0表示允许，-1表示拒绝 PERMISSION_GRANTED = 0， PERMISSION_DENIED = -1
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                //这里进行授权被允许的处理
-                for (int i = 0; i < permissions.length; i++) {
-                    Log.d("MainActivity1", "申请的权限为：" + permissions[i] + ",申请结果：" + grantResults[i]);
-                }
-            } else {
-                //这里进行权限被拒绝的处理
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }
-
-    //监听mTextureView可用，打开相机 wx3
-    private final TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
-        @Override
-        public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
-            openCamera(width, height);
-        }
-
-        @Override
-        public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
-            //configureTransform(width, height);
-        }
-
-        @Override
-        public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
-            return true;
-        }
-
-        @Override
-        public void onSurfaceTextureUpdated(SurfaceTexture texture) {
-        }
-    };
 
     //获取mCameraId值 wx5
     private void getCameraId() {
@@ -209,8 +196,8 @@ public class MainActivity extends AppCompatActivity {
                 if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
                     continue;
                 }
-                mCameraId = cameraId;
-                Log.d("wangxin666","mCameraId = " + mCameraId);
+                cameraAttributes.setCameraId(cameraId);
+                Log.d("wangxin666","mCameraId = " + cameraAttributes.getCameraId());
                 return;
             }
         } catch (CameraAccessException e) {
@@ -222,17 +209,17 @@ public class MainActivity extends AppCompatActivity {
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            path  = FileTool.getPhotoFileName();
-            cameraFile = FileTool.createNewFile(path);
+            cameraAttributes.setPath(FileTool.getPhotoFileName());
+            cameraAttributes.setCameraFile(FileTool.createNewFile(cameraAttributes.getPath()));
             //文件储存
-            mFile = new File(cameraFile.toURI());
+            cameraAttributes.setFile(new File(cameraAttributes.getCameraFile().toURI()));
 
             Intent intent = new Intent(
                     Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-            intent.setData(Uri.fromFile(cameraFile));
+            intent.setData(Uri.fromFile(cameraAttributes.getCameraFile()));
             sendBroadcast(intent);
 
-            methodTool.getBackgroundThread().mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mFile));
+            methodTool.getBackgroundThread().mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), cameraAttributes.getFile()));
         }
     };
 
@@ -264,16 +251,16 @@ public class MainActivity extends AppCompatActivity {
     //预览 wx6
     private void createCameraPreviewSession() {
         try {
-            SurfaceTexture texture = mTextureView.getSurfaceTexture();
+            SurfaceTexture texture = activityTool.getTextureView().getSurfaceTexture();
             //assert(texture != null);
 
-            Log.d("wangxin666","mTextureView.getWidth() = " + mTextureView.getWidth()  + " mTextureView.getHeight()" + mTextureView.getHeight());
+            Log.d("wangxin666","mTextureView.getWidth() = " + activityTool.getTextureView().getWidth()  + " mTextureView.getHeight()" + activityTool.getTextureView().getHeight());
             // 我们将默认缓冲区的大小配置为我们想要的相机预览大小。
-            mOrientation = methodTool.getOrientationListener().startOrientationChangeListener(this);
-            if ( mOrientation == 90 || mOrientation == 270) {
-                texture.setDefaultBufferSize(mTextureView.getWidth(), mTextureView.getHeight());
+            cameraAttributes.setOrientation(methodTool.getOrientationListener().startOrientationChangeListener(this));
+            if ( cameraAttributes.getOrientation() == 90 || cameraAttributes.getOrientation() == 270) {
+                texture.setDefaultBufferSize(activityTool.getTextureView().getWidth(), activityTool.getTextureView().getHeight());
             } else {
-                texture.setDefaultBufferSize(mTextureView.getHeight(), mTextureView.getWidth());
+                texture.setDefaultBufferSize(activityTool.getTextureView().getHeight(), activityTool.getTextureView().getWidth());
             }
             // 这是我们需要开始预览的输出表面。
             Surface surface = new Surface(texture);
@@ -374,9 +361,9 @@ public class MainActivity extends AppCompatActivity {
             captureBuilder.set(CaptureRequest.CONTROL_AE_MODE,
                     CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
             // 方向
-            mOrientation = methodTool.getOrientationListener().startOrientationChangeListener(this);
-            Log.d("wangxin666","mOrientation = " + mOrientation);
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, mOrientation);
+            cameraAttributes.setOrientation(methodTool.getOrientationListener().startOrientationChangeListener(this));
+            Log.d("wangxin666","mOrientation = " + cameraAttributes.getOrientation());
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, cameraAttributes.getOrientation());
 
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
@@ -385,7 +372,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    showToast("Saved: " + mFile);
+                    showToast("Saved: " + cameraAttributes.getFile());
 
                     unlockFocus();//恢复预览
                 }
@@ -422,28 +409,4 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
-    //关闭Camera  wx0
-    private void closeCamera() {
-        try {
-            cameraAttributes.getCameraOpenCloseLock().acquire();
-            if (null != cameraAttributes.getCaptureSession()) {
-                cameraAttributes.getCaptureSession().close();
-                cameraAttributes.setCaptureSession(null);
-            }
-            if (null != cameraAttributes.getCameraDevice()) {
-                cameraAttributes.getCameraDevice().close();
-                cameraAttributes.setCameraDevice(null);
-            }
-            if (null != cameraAttributes.getImageReader()) {
-                cameraAttributes.getImageReader().close();
-                cameraAttributes.setImageReader(null);
-            }
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
-        } finally {
-            cameraAttributes.getCameraOpenCloseLock().release();
-        }
-    }
-
 }

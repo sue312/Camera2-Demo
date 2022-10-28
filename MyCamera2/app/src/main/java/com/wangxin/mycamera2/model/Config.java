@@ -1,4 +1,4 @@
-package com.wangxin.mycamera2;
+package com.wangxin.mycamera2.model;
 
 import android.Manifest;
 import android.os.Environment;

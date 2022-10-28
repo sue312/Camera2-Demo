@@ -1,6 +1,6 @@
-package com.wangxin.mycamera2;
+package com.wangxin.mycamera2.model;
 
-import static com.wangxin.mycamera2.Config.STATE_PREVIEW;
+import static com.wangxin.mycamera2.model.Config.STATE_PREVIEW;
 
 import android.content.Context;
 import android.hardware.camera2.CameraCaptureSession;
@@ -9,12 +9,12 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.media.ImageReader;
 
+import java.io.File;
 import java.util.concurrent.Semaphore;
 
 public class CameraAttributes {
 
     private Context context;
-    private CameraCaptureSession.CaptureCallback mCaptureCallback;
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
     private CameraManager mCameraManager;
     private CameraDevice mCameraDevice;
@@ -23,6 +23,9 @@ public class CameraAttributes {
     private CaptureRequest mPreviewRequest;
     private ImageReader mImageReader;
     private int mState = STATE_PREVIEW;
+    private int mOrientation = 0;
+    private File mFile, cameraFile;
+    private String mCameraId, path;
 
     public CameraAttributes() {
     }
@@ -33,14 +36,6 @@ public class CameraAttributes {
 
     public void setContext(Context context) {
         this.context = context;
-    }
-
-    public CameraCaptureSession.CaptureCallback getCaptureCallback() {
-        return mCaptureCallback;
-    }
-
-    public void setCaptureCallback(CameraCaptureSession.CaptureCallback mCaptureCallback) {
-        this.mCaptureCallback = mCaptureCallback;
     }
 
     public CameraDevice getCameraDevice() {
@@ -105,5 +100,45 @@ public class CameraAttributes {
 
     public void setState(int mState) {
         this.mState = mState;
+    }
+
+    public int getOrientation() {
+        return mOrientation;
+    }
+
+    public void setOrientation(int mOrientation) {
+        this.mOrientation = mOrientation;
+    }
+
+    public File getFile() {
+        return mFile;
+    }
+
+    public void setFile(File mFile) {
+        this.mFile = mFile;
+    }
+
+    public File getCameraFile() {
+        return cameraFile;
+    }
+
+    public void setCameraFile(File cameraFile) {
+        this.cameraFile = cameraFile;
+    }
+
+    public String getCameraId() {
+        return mCameraId;
+    }
+
+    public void setCameraId(String mCameraId) {
+        this.mCameraId = mCameraId;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 }

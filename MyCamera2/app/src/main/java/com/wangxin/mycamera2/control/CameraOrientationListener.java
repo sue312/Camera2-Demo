@@ -1,4 +1,4 @@
-package com.wangxin.mycamera2;
+package com.wangxin.mycamera2.control;
 
 import android.content.Context;
 import android.hardware.SensorManager;

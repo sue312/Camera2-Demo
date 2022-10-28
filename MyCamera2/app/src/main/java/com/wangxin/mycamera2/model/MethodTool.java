@@ -1,10 +1,15 @@
-package com.wangxin.mycamera2;
+package com.wangxin.mycamera2.model;
+
+import com.wangxin.mycamera2.control.BackgroundThread;
+import com.wangxin.mycamera2.control.CameraOrientationListener;
+import com.wangxin.mycamera2.control.CloseCamera;
 
 public class MethodTool {
 
     private BackgroundThread backgroundThread;
     private CameraOrientationListener orientationListener;
-    private CameraAttributes cameraAttributes;
+    private CloseCamera closeCamera;
+
 
     public MethodTool() {
     }
@@ -25,11 +30,12 @@ public class MethodTool {
         this.orientationListener = orientationListener;
     }
 
-    public CameraAttributes getCameraAttributes() {
-        return cameraAttributes;
+    public CloseCamera getCloseCamera() {
+        return closeCamera;
     }
 
-    public void setCameraAttributes(CameraAttributes cameraAttributes) {
-        this.cameraAttributes = cameraAttributes;
+    public void setCloseCamera(CloseCamera closeCamera) {
+        this.closeCamera = closeCamera;
     }
+
 }

@@ -1,6 +1,6 @@
-package com.wangxin.mycamera2;
+package com.wangxin.mycamera2.control;
 
-import static com.wangxin.mycamera2.Config.EXTERNAL_STORAGE_DIRECTORY_ROOT;
+import static com.wangxin.mycamera2.model.Config.EXTERNAL_STORAGE_DIRECTORY_ROOT;
 
 import android.os.Environment;
 
