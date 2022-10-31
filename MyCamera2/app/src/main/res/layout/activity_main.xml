@@ -38,19 +38,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white666">
-        <Button
+        <com.wangxin.mycamera2.UI.CircleImageView
+            android:id="@+id/imageButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:id="@+id/cancelButton"
-            android:text="取消"
-            android:visibility="invisible"/>
-        <Button
+            android:src="@drawable/iv_default_image"
+            android:visibility="visible"/>
+        <ImageView
             android:id="@+id/captureButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="拍照"
+            android:src="@drawable/ic_switch_module"
             android:visibility="visible"/>
         <Button
             android:layout_width="0dp"

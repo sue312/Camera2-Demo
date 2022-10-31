@@ -10,4 +10,13 @@
     <color name="white666">#61535353</color>
 
     <color name="icon_tint">#ffffff</color>
+    <color name="button_color_normal">#3b000000</color>
+
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#209f55</color>
+
+    <color name="outer_circle_color">@color/colorAccent</color>
+    <color name="inner_circle_color">#ffffff</color>
+    <color name="color_record">#ef5d5d</color>
 </resources>

@@ -1,5 +1,6 @@
 package com.wangxin.mycamera2;
 
+import static com.wangxin.mycamera2.model.Config.EXTERNAL_STORAGE_DIRECTORY_ROOT;
 import static com.wangxin.mycamera2.model.Config.PERMISSIONS_CAMERA;
 import static com.wangxin.mycamera2.model.Config.PERMISSIONS_STORAGE;
 import static com.wangxin.mycamera2.model.Config.REQUEST_PERMISSION_CODE;
@@ -12,9 +13,14 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -29,6 +35,10 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.media.ImageReader;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
@@ -39,21 +49,42 @@ import android.widget.Toast;
 import com.wangxin.mycamera2.control.BackgroundThread;
 import com.wangxin.mycamera2.control.CameraOrientationListener;
 import com.wangxin.mycamera2.control.CloseCamera;
+import com.wangxin.mycamera2.control.CustomChildThread;
 import com.wangxin.mycamera2.control.FileTool;
 import com.wangxin.mycamera2.control.ImageSaver;
+import com.wangxin.mycamera2.control.UpdateThumbnail;
 import com.wangxin.mycamera2.model.ActivityTool;
 import com.wangxin.mycamera2.model.CameraAttributes;
+import com.wangxin.mycamera2.model.Config;
 import com.wangxin.mycamera2.model.MethodTool;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     MethodTool methodTool = new MethodTool();
     ActivityTool activityTool = new ActivityTool();
     CameraAttributes cameraAttributes = new CameraAttributes();
+
+    //创建 Handler对象，并关联主线程消息队列
+    public Handler mHandler = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            String type = (String) msg.obj;
+            switch (type) {
+                case "modify_ui":
+                    //更新小窗口图片
+                    UpdateThumbnail.updateThumb(cameraAttributes,activityTool);
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +96,14 @@ public class MainActivity extends AppCompatActivity {
         //预览界面TextureView
         activityTool.setTextureView(findViewById(R.id.texture));
         activityTool.setTackPictureBtn(findViewById(R.id.captureButton));
+        activityTool.getTackPictureBtn().setOnClickListener(this);
+        activityTool.setViewImageBtn(findViewById(R.id.imageButton));
+        activityTool.getViewImageBtn().setOnClickListener(this);
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
         //拍照方向矫正
         methodTool.setOrientationListener(new CameraOrientationListener(this));
         methodTool.getOrientationListener().enable();
@@ -79,11 +117,10 @@ public class MainActivity extends AppCompatActivity {
         methodTool.getBackgroundThread().startBackgroundThread();
 
         methodTool.setCloseCamera(new CloseCamera());
-    }
+        methodTool.setCustomThread(new CustomChildThread(mHandler));
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+        //更新小窗口图片
+        UpdateThumbnail.updateThumb(cameraAttributes,activityTool);
 
         //如果mTextureView可用
         if (activityTool.getTextureView().isAvailable()) {
@@ -94,13 +131,6 @@ public class MainActivity extends AppCompatActivity {
             activityTool.getTextureView().setSurfaceTextureListener(mSurfaceTextureListener);
         }
 
-        //拍照点击事件
-        activityTool.getTackPictureBtn().setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                lockFocus();
-            }
-        });
     }
 
     @Override
@@ -108,6 +138,24 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         methodTool.getCloseCamera().closeCamera();
         methodTool.getBackgroundThread().stopBackgroundThread();
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.captureButton:
+                lockFocus();
+                if (!methodTool.getCustomThread().isAlive()) {
+                    methodTool.setCustomThread(new CustomChildThread(mHandler));
+                    methodTool.getCustomThread().start();
+                }
+                break;
+            case R.id.imageButton:
+                FileTool.getImage(cameraAttributes.getContext());
+                break;
+            default:
+                break;
+        }
     }
 
     //锁定焦点 wx1
@@ -409,4 +457,5 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
 }

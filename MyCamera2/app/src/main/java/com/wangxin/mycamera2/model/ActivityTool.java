@@ -2,11 +2,15 @@ package com.wangxin.mycamera2.model;
 
 import android.view.TextureView;
 import android.widget.Button;
+import android.widget.ImageView;
+
+import com.wangxin.mycamera2.UI.CircleImageView;
 
 public class ActivityTool {
 
     private TextureView mTextureView;
-    private Button tackPictureBtn;
+    private ImageView tackPictureBtn;
+    private CircleImageView viewImageBtn;
 
     public ActivityTool() {
     }
@@ -19,11 +23,19 @@ public class ActivityTool {
         this.mTextureView = mTextureView;
     }
 
-    public Button getTackPictureBtn() {
+    public ImageView getTackPictureBtn() {
         return tackPictureBtn;
     }
 
-    public void setTackPictureBtn(Button tackPictureBtn) {
+    public void setTackPictureBtn(ImageView tackPictureBtn) {
         this.tackPictureBtn = tackPictureBtn;
+    }
+
+    public CircleImageView getViewImageBtn() {
+        return viewImageBtn;
+    }
+
+    public void setViewImageBtn(CircleImageView viewImageBtn) {
+        this.viewImageBtn = viewImageBtn;
     }
 }
