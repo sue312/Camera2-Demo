@@ -16,14 +16,14 @@ public class CameraOrientationListener extends OrientationEventListener {
 
     @Override
     public void onOrientationChanged(final int orientation) {
-        //Log.i("wangxin666", "当前屏幕手持角度:" + orientation + "°");
+        //Log.d("wangxin666", "当前屏幕手持角度:" + orientation + "°");
         if (orientation != ORIENTATION_UNKNOWN) {
             mCurrentNormalizedOrientation = normalize(orientation);
             Log.d("wangxin666","mCurrentNormalizedOrientation = " + mCurrentNormalizedOrientation);
         }
     }
 
-    private int normalize(int degrees) {
+    public int normalize(int degrees) {
         if (degrees > 315 || degrees <= 45) {
             return 0;
         }

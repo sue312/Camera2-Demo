@@ -41,7 +41,7 @@
         <com.wangxin.mycamera2.UI.CircleImageView
             android:id="@+id/imageButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="60dp"
             android:layout_weight="1"
             android:src="@drawable/iv_default_image"
             android:visibility="visible"/>
@@ -52,13 +52,13 @@
             android:layout_weight="1"
             android:src="@drawable/ic_switch_module"
             android:visibility="visible"/>
-        <Button
+        <ImageView
+            android:id="@+id/flipButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:id="@+id/saveButton"
-            android:text="保存"
-            android:visibility="invisible"/>
+            android:src="@drawable/ic_vector_switch_to_front"
+            android:visibility="visible"/>
     </LinearLayout>
 
 </RelativeLayout>

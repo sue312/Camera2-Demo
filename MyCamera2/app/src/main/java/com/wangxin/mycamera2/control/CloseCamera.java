@@ -4,13 +4,8 @@ import com.wangxin.mycamera2.model.CameraAttributes;
 
 public class CloseCamera {
 
-    CameraAttributes cameraAttributes = new CameraAttributes();
-
-    public CloseCamera() {
-    }
-
     //关闭Camera  wx0
-    public void closeCamera() {
+    public static void closeCamera(CameraAttributes cameraAttributes) {
         try {
             cameraAttributes.getCameraOpenCloseLock().acquire();
             if (null != cameraAttributes.getCaptureSession()) {

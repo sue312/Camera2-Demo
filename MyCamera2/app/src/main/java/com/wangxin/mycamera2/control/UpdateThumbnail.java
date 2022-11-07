@@ -1,13 +1,12 @@
 package com.wangxin.mycamera2.control;
 
 import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
 
-import androidx.core.content.ContextCompat;
-
-import com.wangxin.mycamera2.R;
 import com.wangxin.mycamera2.model.ActivityTool;
 import com.wangxin.mycamera2.model.CameraAttributes;
+import com.wangxin.mycamera2.model.MethodTool;
+
+import android.os.Handler;
 
 public class UpdateThumbnail {
 

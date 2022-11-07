@@ -11,6 +11,7 @@ public class ActivityTool {
     private TextureView mTextureView;
     private ImageView tackPictureBtn;
     private CircleImageView viewImageBtn;
+    private ImageView flipBtn;
 
     public ActivityTool() {
     }
@@ -37,5 +38,13 @@ public class ActivityTool {
 
     public void setViewImageBtn(CircleImageView viewImageBtn) {
         this.viewImageBtn = viewImageBtn;
+    }
+
+    public ImageView getFlipBtn() {
+        return flipBtn;
+    }
+
+    public void setFlipBtn(ImageView flipBtn) {
+        this.flipBtn = flipBtn;
     }
 }

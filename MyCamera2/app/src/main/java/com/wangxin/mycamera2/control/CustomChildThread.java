@@ -18,7 +18,7 @@ public class CustomChildThread extends Thread{
     public void run() {
         try {
             //让当前执行的线程（即 CustomChildThread）睡眠 1s
-            Thread.sleep(1000);
+            Thread.sleep(2000);
 
             //在子线程中创建一个消息对象
             Message childThreadMessage = new Message();
@@ -29,5 +29,7 @@ public class CustomChildThread extends Thread{
             e.printStackTrace();
         }
     }
+
+
 
 }

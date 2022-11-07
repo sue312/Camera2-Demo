@@ -26,6 +26,7 @@ public class CameraAttributes {
     private int mOrientation = 0;
     private File mFile, cameraFile;
     private String mCameraId, path;
+    private boolean isBack = true;
 
     public CameraAttributes() {
     }
@@ -140,5 +141,13 @@ public class CameraAttributes {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public boolean isBack() {
+        return isBack;
+    }
+
+    public void setBack(boolean back) {
+        isBack = back;
     }
 }

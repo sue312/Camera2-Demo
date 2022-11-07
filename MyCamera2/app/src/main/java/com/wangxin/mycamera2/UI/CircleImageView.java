@@ -19,6 +19,8 @@ import android.util.Log;
 import android.widget.ImageView;
 
 import com.wangxin.mycamera2.R;
+import com.wangxin.mycamera2.model.CameraAttributes;
+import com.wangxin.mycamera2.model.MethodTool;
 
 
 @SuppressLint("AppCompatCustomView")
@@ -52,6 +54,7 @@ public class CircleImageView extends ImageView {
 
     private boolean mReady;
     private boolean mSetupPending;
+    CameraAttributes cameraAttributes = new CameraAttributes();
 
     public CircleImageView(Context context) {
         super(context);
@@ -208,6 +211,7 @@ public class CircleImageView extends ImageView {
         mBorderPaint.setColor(mBorderColor);
         mBorderPaint.setStrokeWidth(mBorderWidth);
 
+        // 获得图片的宽高
         mBitmapHeight = mBitmap.getHeight();
         mBitmapWidth = mBitmap.getWidth();
 
@@ -217,9 +221,6 @@ public class CircleImageView extends ImageView {
 
         mDrawableRect.set(mBorderWidth, mBorderWidth, mBorderRect.width() - mBorderWidth,
                 mBorderRect.height() - mBorderWidth);
-        Log.d("wangxin666","mBorderWidth = " + mBorderWidth + " mBorderWidth = " + mBorderWidth);
-        Log.d("wangxin666","mBorderRect.width() = " + mBorderRect.width() + " mBorderRect.height() = " + mBorderRect.height());
-//        mDrawableRect.set(60,60,0,0);
         mDrawableRadius = Math.min(mDrawableRect.height() / 2, mDrawableRect.width() / 2);
 
         updateShaderMatrix();
@@ -233,6 +234,7 @@ public class CircleImageView extends ImageView {
 
         mShaderMatrix.set(null);
 
+        // 计算缩放比例
         if (mBitmapWidth * mDrawableRect.height() > mDrawableRect.width() * mBitmapHeight) {
             scale = mDrawableRect.height() / (float) mBitmapHeight;
             dx = (mDrawableRect.width() - mBitmapWidth * scale) * 0.5f;
@@ -244,6 +246,7 @@ public class CircleImageView extends ImageView {
         mShaderMatrix.setScale(scale, scale);
         mShaderMatrix.postTranslate((int) (dx + 0.5f) + mBorderWidth, (int) (dy + 0.5f) +
                 mBorderWidth);
+
 
         mBitmapShader.setLocalMatrix(mShaderMatrix);
     }

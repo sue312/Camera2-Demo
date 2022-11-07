@@ -2,7 +2,6 @@ package com.wangxin.mycamera2.model;
 
 import com.wangxin.mycamera2.control.BackgroundThread;
 import com.wangxin.mycamera2.control.CameraOrientationListener;
-import com.wangxin.mycamera2.control.CloseCamera;
 import com.wangxin.mycamera2.control.CustomChildThread;
 
 public class MethodTool {
@@ -10,7 +9,6 @@ public class MethodTool {
     private BackgroundThread backgroundThread;
     private CameraOrientationListener orientationListener;
     private CustomChildThread customThread;
-    private CloseCamera closeCamera;
 
 
     public MethodTool() {
@@ -30,14 +28,6 @@ public class MethodTool {
 
     public void setOrientationListener(CameraOrientationListener orientationListener) {
         this.orientationListener = orientationListener;
-    }
-
-    public CloseCamera getCloseCamera() {
-        return closeCamera;
-    }
-
-    public void setCloseCamera(CloseCamera closeCamera) {
-        this.closeCamera = closeCamera;
     }
 
     public CustomChildThread getCustomThread() {
