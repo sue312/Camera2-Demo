@@ -23,4 +23,5 @@ public class Config {
             Environment.getExternalStorageDirectory().getAbsolutePath()+ SEPARATOR + "DCIM" + SEPARATOR + "Camera2" + SEPARATOR ;
 
     public static final String CURRENT_PROCESS_KEY = "CURRENT_PROCESS";
+
 }

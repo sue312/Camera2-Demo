@@ -1,4 +1,4 @@
-package com.wangxin.mycamera2.control;
+package com.wangxin.mycamera2.tool;
 
 import static com.wangxin.mycamera2.model.Config.CURRENT_PROCESS_KEY;
 

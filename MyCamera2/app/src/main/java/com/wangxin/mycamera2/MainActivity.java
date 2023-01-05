@@ -8,20 +8,22 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 
-import com.wangxin.mycamera2.control.BackgroundThread;
-import com.wangxin.mycamera2.control.CloseCamera;
+
+import com.wangxin.mycamera2.tool.BackgroundThread;
+import com.wangxin.mycamera2.tool.CloseCamera;
 import com.wangxin.mycamera2.control.FocusController;
 import com.wangxin.mycamera2.control.CameraOrientationListener;
-import com.wangxin.mycamera2.control.CustomChildThread;
-import com.wangxin.mycamera2.control.FileTool;
+import com.wangxin.mycamera2.tool.CustomChildThread;
 import com.wangxin.mycamera2.control.UpdateThumbnail;
 import com.wangxin.mycamera2.model.ActivityTool;
 import com.wangxin.mycamera2.model.CameraAttributes;
 import com.wangxin.mycamera2.model.CameraCallback;
 import com.wangxin.mycamera2.model.MethodTool;
+import com.wangxin.mycamera2.tool.PopupView;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
@@ -32,7 +34,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     CameraCallback cameraCallback = new CameraCallback(cameraAttributes,methodTool,activityTool);
 
     //创建 Handler对象，并关联主线程消息队列
-    public Handler mHandler = new Handler(Looper.getMainLooper()) {
+    private Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
@@ -63,6 +65,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         activityTool.getViewImageBtn().setOnClickListener(this);
         activityTool.setFlipBtn(findViewById(R.id.flipButton));
         activityTool.getFlipBtn().setOnClickListener(this);
+        activityTool.setFlashBtn(findViewById(R.id.btn_flash));
+        activityTool.getFlashBtn().setOnClickListener(this);
+
     }
 
     @Override
@@ -71,20 +76,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //拍照方向矫正
         methodTool.setOrientationListener(new CameraOrientationListener(this));
         methodTool.getOrientationListener().enable();
-
         //获取Camera服务
         cameraAttributes.setCameraManager((CameraManager)getSystemService(Context.CAMERA_SERVICE));
         cameraAttributes.setContext(this);
-
         //启动后台线程
         methodTool.setBackgroundThread(new BackgroundThread());
         methodTool.getBackgroundThread().startBackgroundThread();
-
+        //设置子线程，刷新缩略图
         methodTool.setCustomThread(new CustomChildThread(mHandler));
-
-        //更新小窗口图片
         UpdateThumbnail.updateThumb(cameraAttributes,activityTool);
 
+        //检查并打开camera
         cameraCallback.checkCamera();
 
     }
@@ -92,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onPause() {
         super.onPause();
+        //关闭Camera,关闭后台线程
         CloseCamera.closeCamera(cameraAttributes);
         methodTool.getBackgroundThread().stopBackgroundThread();
     }
@@ -100,17 +103,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.captureButton:
+                //锁定焦点
                 FocusController.lockFocus(cameraAttributes,methodTool,cameraCallback.mCaptureCallback);
-                if (!methodTool.getCustomThread().isAlive()) {
-                    methodTool.setCustomThread(new CustomChildThread(mHandler));
-                    methodTool.getCustomThread().start();
-                }
+                //启动子线程，刷新缩略图刷新缩略图
+                StartCustomThread();
                 break;
             case R.id.imageButton:
-                FileTool.getImage(cameraAttributes.getContext());
+                //刷新缩略图
+                UpdateThumbnail.getImage(cameraAttributes.getContext());
                 break;
             case R.id.flipButton:
+                //切换前后摄
                 switchCamera(cameraAttributes);
+                break;
+            case R.id.btn_flash:
+                //切换闪光灯模式
+                PopupView.popupView(cameraAttributes,activityTool,cameraCallback.mCaptureCallback,methodTool,v);
                 break;
             default:
                 break;
@@ -123,5 +131,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         CloseCamera.closeCamera(cameraAttributes);
         cameraCallback.checkCamera();
     }
+
+    //启动子线程，刷新缩略图刷新缩略图
+    private void StartCustomThread() {
+        if (!methodTool.getCustomThread().isAlive()) {
+            methodTool.setCustomThread(new CustomChildThread(mHandler));
+            methodTool.getCustomThread().start();
+        }
+    }
+
+
 
 }

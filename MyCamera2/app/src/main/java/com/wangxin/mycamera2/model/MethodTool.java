@@ -1,8 +1,8 @@
 package com.wangxin.mycamera2.model;
 
-import com.wangxin.mycamera2.control.BackgroundThread;
+import com.wangxin.mycamera2.tool.BackgroundThread;
 import com.wangxin.mycamera2.control.CameraOrientationListener;
-import com.wangxin.mycamera2.control.CustomChildThread;
+import com.wangxin.mycamera2.tool.CustomChildThread;
 
 public class MethodTool {
 

@@ -15,8 +15,8 @@ import android.net.Uri;
 import android.view.TextureView;
 
 import com.wangxin.mycamera2.control.CameraController;
-import com.wangxin.mycamera2.control.FileTool;
-import com.wangxin.mycamera2.control.ImageSaver;
+import com.wangxin.mycamera2.tool.FileTool;
+import com.wangxin.mycamera2.tool.ImageSaver;
 
 import java.io.File;
 
@@ -33,7 +33,7 @@ public class CameraCallback {
     }
 
     //监听mTextureView可用，打开相机 wx3
-    public TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
+    public final TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
             CameraController.openCamera(width, height,cameraAttributes,methodTool,mStateCallback,mOnImageAvailableListener);
@@ -55,7 +55,7 @@ public class CameraCallback {
     };
 
     //监听图像可用 wx5
-    public ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
+    public final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
             cameraAttributes.setPath(FileTool.getPhotoFileName());
@@ -73,7 +73,7 @@ public class CameraCallback {
     };
 
     //获取mStateCallback wx5
-    public  CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
+    public final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
 
         @Override
         public void onOpened(CameraDevice cameraDevice) {
@@ -98,7 +98,7 @@ public class CameraCallback {
     };
 
     //捕获回调 wx7
-    public CameraCaptureSession.CaptureCallback mCaptureCallback =
+    public final CameraCaptureSession.CaptureCallback mCaptureCallback =
             new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request,

@@ -19,8 +19,7 @@ import android.util.Log;
 import android.widget.ImageView;
 
 import com.wangxin.mycamera2.R;
-import com.wangxin.mycamera2.model.CameraAttributes;
-import com.wangxin.mycamera2.model.MethodTool;
+
 
 
 @SuppressLint("AppCompatCustomView")
@@ -54,7 +53,6 @@ public class CircleImageView extends ImageView {
 
     private boolean mReady;
     private boolean mSetupPending;
-    CameraAttributes cameraAttributes = new CameraAttributes();
 
     public CircleImageView(Context context) {
         super(context);

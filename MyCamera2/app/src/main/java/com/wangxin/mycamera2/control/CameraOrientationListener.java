@@ -65,4 +65,30 @@ public class CameraOrientationListener extends OrientationEventListener {
         return mOrientation;
     }
 
+    //拍照方向矫正
+    public int startOrientationChangeListener2(Context context) {
+        OrientationEventListener mOrEventListener = new OrientationEventListener(context) {
+            @Override
+            public void onOrientationChanged(int rotation) {
+                if (((rotation >= 0) && (rotation <= 45)) || (rotation > 315)) {
+                    rotation = 270;
+                } else if ((rotation > 45) && (rotation <= 135)) {
+                    rotation = 180;
+                } else if ((rotation > 135) && (rotation <= 225)) {
+                    rotation = 90;
+                } else if ((rotation > 225) && (rotation <= 315)) {
+                    rotation = 0;
+                } else {
+                    rotation = 0;
+                }
+                if (rotation == mOrientation) {
+                    return;
+                }
+                mOrientation = rotation;
+            }
+        };
+        mOrEventListener.enable();
+        return mOrientation;
+    }
+
 }

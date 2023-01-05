@@ -14,6 +14,7 @@ import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.media.ImageReader;
@@ -27,8 +28,8 @@ import androidx.core.content.ContextCompat;
 import com.wangxin.mycamera2.model.ActivityTool;
 import com.wangxin.mycamera2.model.CameraAttributes;
 import com.wangxin.mycamera2.model.MethodTool;
+import com.wangxin.mycamera2.tool.ShowToast;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -81,6 +82,7 @@ public class CameraController {
             for (String cameraId : cameraAttributes.getCameraManager().getCameraIdList()) {
                 //可获取指定摄像头的相关特性
                 CameraCharacteristics characteristics = cameraAttributes.getCameraManager().getCameraCharacteristics(cameraId);
+                //判断前后摄像头
                 if (!cameraAttributes.isBack()) {
                     if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK) {
                         continue;
@@ -104,16 +106,18 @@ public class CameraController {
                                             ActivityTool activityTool,CameraCaptureSession.CaptureCallback mCaptureCallback) {
         try {
             SurfaceTexture texture = activityTool.getTextureView().getSurfaceTexture();
-            //assert(texture != null);
 
             Log.d("wangxin666","mTextureView.getWidth() = " + activityTool.getTextureView().getWidth()  + " mTextureView.getHeight()" + activityTool.getTextureView().getHeight());
             // 我们将默认缓冲区的大小配置为我们想要的相机预览大小。
-            cameraAttributes.setOrientation(methodTool.getOrientationListener().startOrientationChangeListener(cameraAttributes.getContext()));
-            if ( cameraAttributes.getOrientation() == 90 || cameraAttributes.getOrientation() == 270) {
+            isBack(cameraAttributes,methodTool);
+
+            //判断设备方向
+            if ( activityTool.getTextureView().getWidth() >= activityTool.getTextureView().getHeight()) {
                 texture.setDefaultBufferSize(activityTool.getTextureView().getWidth(), activityTool.getTextureView().getHeight());
             } else {
                 texture.setDefaultBufferSize(activityTool.getTextureView().getHeight(), activityTool.getTextureView().getWidth());
             }
+
             // 这是我们需要开始预览的输出表面。
             Surface surface = new Surface(texture);
 
@@ -134,8 +138,12 @@ public class CameraController {
                             try {
                                 cameraAttributes.getPreviewBuilder().set(CaptureRequest.CONTROL_AF_MODE,
                                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+
                                 cameraAttributes.getPreviewBuilder().set(CaptureRequest.CONTROL_AE_MODE,
-                                        CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+                                        CaptureRequest.CONTROL_AE_MODE_ON);
+                                cameraAttributes.getPreviewBuilder().set(CaptureRequest.FLASH_MODE,
+                                        CameraMetadata.FLASH_MODE_OFF);
+
                                 cameraAttributes.setPreviewRequest(cameraAttributes.getPreviewBuilder().build());
                                 cameraAttributes.getCaptureSession().setRepeatingRequest(cameraAttributes.getPreviewRequest(), mCaptureCallback, methodTool.getBackgroundThread().mBackgroundHandler);
                             } catch (CameraAccessException e) {
@@ -168,11 +176,12 @@ public class CameraController {
             // 使用与预览相同的 AE 和 AF 模式。
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                     CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            captureBuilder.set(CaptureRequest.CONTROL_AE_MODE,
-                    CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
-            // 方向
-            cameraAttributes.setOrientation(methodTool.getOrientationListener().startOrientationChangeListener(cameraAttributes.getContext()));
-            Log.d("wangxin666","mOrientation = " + cameraAttributes.getOrientation());
+
+            // 方向,我们将默认缓冲区的大小配置为我们想要的相机预览大小。
+            isBack(cameraAttributes,methodTool);
+
+            Log.d("wangxin666", "mOrientation = " + cameraAttributes.getOrientation());
+
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, cameraAttributes.getOrientation());
 
             CameraCaptureSession.CaptureCallback CaptureCallback
@@ -192,6 +201,18 @@ public class CameraController {
             cameraAttributes.getCaptureSession().capture(captureBuilder.build(), CaptureCallback, null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
+        }
+    }
+
+    // 判断使用的是否是前摄
+    private static void isBack(CameraAttributes cameraAttributes, MethodTool methodTool) {
+        // 我们将默认缓冲区的大小配置为我们想要的相机预览大小。
+        if (cameraAttributes.isBack()) {
+            //ShowToast.showToast("isBack 1",cameraAttributes);
+            cameraAttributes.setOrientation(methodTool.getOrientationListener().startOrientationChangeListener(cameraAttributes.getContext()));
+        }else {
+            //ShowToast.showToast("isBack 2",cameraAttributes);
+            cameraAttributes.setOrientation(methodTool.getOrientationListener().startOrientationChangeListener2(cameraAttributes.getContext()));
         }
     }
 

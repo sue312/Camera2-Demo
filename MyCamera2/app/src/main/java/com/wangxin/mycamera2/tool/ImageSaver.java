@@ -1,4 +1,4 @@
-package com.wangxin.mycamera2.control;
+package com.wangxin.mycamera2.tool;
 
 import android.content.Intent;
 import android.media.Image;

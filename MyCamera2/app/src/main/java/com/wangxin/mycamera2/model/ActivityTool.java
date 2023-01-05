@@ -12,6 +12,7 @@ public class ActivityTool {
     private ImageView tackPictureBtn;
     private CircleImageView viewImageBtn;
     private ImageView flipBtn;
+    private ImageView flashBtn;
 
     public ActivityTool() {
     }
@@ -46,5 +47,13 @@ public class ActivityTool {
 
     public void setFlipBtn(ImageView flipBtn) {
         this.flipBtn = flipBtn;
+    }
+
+    public ImageView getFlashBtn() {
+        return flashBtn;
+    }
+
+    public void setFlashBtn(ImageView flashBtn) {
+        this.flashBtn = flashBtn;
     }
 }

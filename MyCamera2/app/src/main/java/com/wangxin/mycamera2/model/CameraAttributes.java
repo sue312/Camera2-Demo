@@ -150,4 +150,5 @@ public class CameraAttributes {
     public void setBack(boolean back) {
         isBack = back;
     }
+
 }
